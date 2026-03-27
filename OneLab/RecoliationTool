@@ -1,0 +1,224 @@
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from typing import Tuple
+
+
+class PaymentReconciliation:
+    """
+    Payment reconciliation tool for comparing platform transactions
+    with bank settlements.
+    """
+
+    def __init__(self, seed: int = 42):
+        np.random.seed(seed)
+
+    # -----------------------------
+    # Generate Synthetic Transactions
+    # -----------------------------
+    def generate_transactions(
+        self,
+        n: int = 50,
+        start_date: datetime = datetime(2025, 3, 1)
+    ) -> pd.DataFrame:
+
+        transactions = []
+
+        for i in range(n):
+            date = start_date + timedelta(days=int(np.random.randint(0, 28)))
+            amount = round(float(np.random.uniform(100, 5000)), 2)
+
+            transactions.append({
+                "transaction_id": f"T{i+1}",
+                "date": date,
+                "amount": amount,
+                "type": "payment"
+            })
+
+        df = pd.DataFrame(transactions)
+        df["date"] = pd.to_datetime(df["date"])
+        return df
+
+    # -----------------------------
+    # Generate Settlements
+    # -----------------------------
+    def generate_settlements(self, transactions_df: pd.DataFrame) -> pd.DataFrame:
+
+        settlements = []
+
+        for _, row in transactions_df.iterrows():
+            settle_date = row["date"] + timedelta(days=int(np.random.randint(1, 3)))
+
+            settlements.append({
+                "transaction_id": row["transaction_id"],
+                "settle_date": settle_date,
+                "amount": row["amount"]
+            })
+
+        df = pd.DataFrame(settlements)
+        df["settle_date"] = pd.to_datetime(df["settle_date"])
+
+        return df
+
+    # -----------------------------
+    # Introduce Discrepancies
+    # -----------------------------
+    def introduce_discrepancies(self, settlements_df: pd.DataFrame) -> pd.DataFrame:
+
+        df = settlements_df.copy()
+
+        # 1. Settlement in next month
+        df.loc[0, "settle_date"] = datetime(2025, 4, 2)
+
+        # 2. Rounding difference
+        df.loc[1, "amount"] = float(df.loc[1, "amount"]) + 0.01
+
+        # 3. Duplicate settlement entry
+        duplicate = df.iloc[[2]].copy()
+        df = pd.concat([df, duplicate], ignore_index=True)
+
+        # 4. Refund without matching transaction
+        refund = pd.DataFrame([{
+            "transaction_id": "R999",
+            "settle_date": datetime(2025, 3, 15),
+            "amount": -500.0
+        }])
+
+        df = pd.concat([df, refund], ignore_index=True)
+
+        return df
+
+    # -----------------------------
+    # Reconciliation Logic
+    # -----------------------------
+    def reconcile(
+        self,
+        transactions_df: pd.DataFrame,
+        settlements_df: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+
+        duplicates = settlements_df[
+            settlements_df.duplicated(subset=["transaction_id"], keep=False)
+        ].copy()
+
+        settlements_deduped = settlements_df.drop_duplicates(
+            subset=["transaction_id"],
+            keep="first"
+        ).copy()
+
+        merged = transactions_df.merge(
+            settlements_deduped,
+            on="transaction_id",
+            how="outer",
+            indicator=True,
+            suffixes=("_txn", "_bank")
+        )
+
+        issues = []
+
+        for _, row in merged.iterrows():
+
+            # Missing in bank
+            if row["_merge"] == "left_only":
+                issues.append({
+                    "transaction_id": row["transaction_id"],
+                    "issue": "Missing in bank settlement",
+                    "txn_amount": row["amount_txn"],
+                    "bank_amount": None,
+                    "txn_date": row["date"],
+                    "settle_date": None
+                })
+
+            # No matching transaction
+            elif row["_merge"] == "right_only":
+                issues.append({
+                    "transaction_id": row["transaction_id"],
+                    "issue": "No matching transaction (refund or error)",
+                    "txn_amount": None,
+                    "bank_amount": row["amount_bank"],
+                    "txn_date": None,
+                    "settle_date": row["settle_date"]
+                })
+
+            else:
+                txn_amt = float(row["amount_txn"])
+                bank_amt = float(row["amount_bank"])
+
+                # Amount mismatch
+                if abs(txn_amt - bank_amt) > 0.001:
+                    issues.append({
+                        "transaction_id": row["transaction_id"],
+                        "issue": "Amount mismatch",
+                        "txn_amount": txn_amt,
+                        "bank_amount": bank_amt,
+                        "txn_date": row["date"],
+                        "settle_date": row["settle_date"]
+                    })
+
+                # Settlement in next month
+                if (
+                    pd.notna(row["settle_date"])
+                    and pd.notna(row["date"])
+                    and row["settle_date"].month != row["date"].month
+                ):
+                    issues.append({
+                        "transaction_id": row["transaction_id"],
+                        "issue": "Settled next month",
+                        "txn_amount": txn_amt,
+                        "bank_amount": bank_amt,
+                        "txn_date": row["date"],
+                        "settle_date": row["settle_date"]
+                    })
+
+        issues_df = pd.DataFrame(issues)
+
+        return issues_df, duplicates
+
+    # -----------------------------
+    # Summary Report
+    # -----------------------------
+    def print_summary(
+        self,
+        transactions_df: pd.DataFrame,
+        settlements_df: pd.DataFrame,
+        issues_df: pd.DataFrame,
+        duplicates_df: pd.DataFrame
+    ):
+
+        print("\n=== Issues Found ===")
+        if issues_df.empty:
+            print("No issues found.")
+        else:
+            print(issues_df.to_string(index=False))
+
+        print("\n=== Duplicate Entries ===")
+        if duplicates_df.empty:
+            print("No duplicates found.")
+        else:
+            print(duplicates_df.to_string(index=False))
+
+        print("\n=== Summary ===")
+        print(f"Total transactions:       {len(transactions_df)}")
+        print(f"Total settlement records: {len(settlements_df)}")
+        print(f"Duplicates:               {len(duplicates_df)}")
+        print(f"Issues found:             {len(issues_df)}")
+
+        if not issues_df.empty:
+            print("\nIssue Breakdown:")
+            print(issues_df["issue"].value_counts())
+
+
+# -----------------------------
+# Run Reconciliation
+# -----------------------------
+if __name__ == "__main__":
+
+    recon = PaymentReconciliation()
+
+    transactions = recon.generate_transactions()
+    settlements = recon.generate_settlements(transactions)
+    settlements = recon.introduce_discrepancies(settlements)
+
+    issues, duplicates = recon.reconcile(transactions, settlements)
+
+    recon.print_summary(transactions, settlements, issues, duplicates)
