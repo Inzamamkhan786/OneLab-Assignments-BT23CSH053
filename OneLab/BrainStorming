@@ -1,0 +1,114 @@
+
+Problem Understanding
+
+The goal of this project was to simulate a transaction reconciliation system between:
+
+Platform Transactions (Internal records)
+Bank Settlements (External records)
+
+The objective was to identify mismatches and anomalies between these two datasets.
+
+Key Issues to Detect
+
+The reconciliation system was designed to detect the following anomalies:
+
+Settlement recorded in the next month
+Rounding differences in amounts
+Duplicate settlement entries
+Refunds without matching transactions
+Missing settlement records
+Approach
+
+The project was developed step-by-step using the following approach:
+
+Step 1 — Generate Synthetic Transaction Dataset
+
+Created a dataset of 50 platform transactions including:
+
+Transaction ID
+Transaction Date
+Amount
+Transaction Type
+
+Used NumPy to generate random values for realism.
+
+Step 2 — Generate Settlement Dataset
+
+Created a bank settlement dataset with:
+
+Settlement delays of 1–2 days
+Matching transaction IDs
+Corresponding amounts
+
+This simulated real-world settlement behavior.
+
+Step 3 — Introduce Intentional Discrepancies
+
+To test the reconciliation logic, intentional anomalies were introduced:
+
+One settlement moved to next month
+One rounding mismatch added (+0.01)
+One duplicate settlement entry
+One refund without matching transaction
+Step 4 — Data Cleaning & Preparation
+Converted date columns to datetime format
+Identified duplicate records
+Removed duplicates for clean reconciliation
+Step 5 — Merge Datasets
+
+Used Outer Join to compare:
+
+Platform Transactions
+Bank Settlements
+
+This allowed detection of:
+
+Missing records
+Extra records
+Mismatches
+Step 6 — Reconciliation Logic
+
+Implemented logic to detect:
+
+Missing bank settlement
+No matching transaction
+Amount mismatch
+Settlement in next month
+
+Each issue was stored in a structured issues dataframe.
+
+Step 7 — Generate Summary Report
+
+The system outputs:
+
+Issues found
+Duplicate entries
+Total transactions
+Total settlements
+Issue breakdown
+Technologies Used
+Python
+Pandas
+NumPy
+Datetime
+Outcome
+
+Successfully built a transaction reconciliation system capable of:
+
+Detecting financial mismatches
+Identifying duplicates
+Handling refunds
+Generating reconciliation reports
+
+This project simulates real-world fintech reconciliation workflows used in:
+
+Payment gateways
+Banking systems
+Fintech platforms
+Accounting systems
+Key Learning
+Data reconciliation logic
+Financial anomaly detection
+Data merging techniques
+Pandas data manipulation
+Real-world fintech workflows
