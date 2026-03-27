@@ -36,7 +36,7 @@ README.md
 
 ```bash
 pip install pandas numpy
-python reconciliation_tool.py
+python reconciliation.py
 ```
 
 ---
