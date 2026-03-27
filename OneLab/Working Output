@@ -1,0 +1,50 @@
+Working Output
+
+The reconciliation system generates synthetic transaction data and bank settlement data with realistic settlement delays. It then introduces controlled anomalies to simulate real-world reconciliation challenges.
+
+The system performs reconciliation between both datasets and produces:
+
+Detected reconciliation issues
+Duplicate settlement entries
+Summary statistics
+Issue breakdown by category
+
+This enables quick identification of discrepancies between platform transactions and bank settlements.
+
+Production Limitations
+
+While the system demonstrates core reconciliation logic, the following limitations exist in a production environment:
+
+1. Transaction ID Assumptions
+
+The system assumes that transaction IDs are unique and reliable.
+In real-world systems:
+
+IDs may be reused
+IDs may differ between systems
+Mapping tables may be required
+2. Timezone & Banking Holiday Handling
+
+The current implementation does not account for:
+
+Timezone differences
+Banking holidays
+Weekend settlement delays
+Cut-off times
+
+These factors can impact settlement timing in production systems.
+
+3. Scalability Constraints
+
+The current implementation uses Pandas row iteration, which may not scale efficiently for:
+
+Millions of transactions
+High-frequency reconciliation
+Real-time processing
+
+Production systems should consider:
+
+Vectorized Pandas operations
+Dask / PySpark for large datasets
+Database-based reconciliation
+Batch processing pipelines
