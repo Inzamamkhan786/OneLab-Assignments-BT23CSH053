@@ -1,3 +1,0 @@
-1.This solution assumes transaction IDs are always unique, which may not hold true in real banking systems.
-2.The reconciliation logic does not handle partial settlements or multiple settlement batches.
-3. Performance may degrade when processing millions of transactions without optimization.

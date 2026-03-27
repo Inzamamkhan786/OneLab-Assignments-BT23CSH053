@@ -1,8 +1,0 @@
-| Test Case | Scenario                   | Expected Result            |
-| --------- | -------------------------- | -------------------------- |
-| 1         | Settlement Next Month      | Settled next month         |
-| 2         | Rounding Difference        | Amount mismatch            |
-| 3         | Duplicate Entry            | Duplicate table            |
-| 4         | Refund Without Transaction | No matching transaction    |
-| 5         | Perfect Match              | No issue                   |
-| 6         | Missing Settlement         | Missing in bank settlement |
